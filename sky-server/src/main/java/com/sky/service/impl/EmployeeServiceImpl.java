@@ -1,16 +1,22 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.annotation.AutoFill;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
+import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
+import com.sky.enumeration.OperationType;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
+import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -20,6 +26,7 @@ import org.springframework.util.DigestUtils;
 
 import java.beans.Beans;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -69,6 +76,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      * 新增员工
      * @param employeeDTO
      */
+    @AutoFill(OperationType.INSERT)
     @Override
     public void save(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
@@ -95,21 +103,67 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         //设置当前状态
         employee.setStatus(StatusConstant.ENABLE);
-
-        //设置新增以及修改时间
-
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime(LocalDateTime.now());
-
-        //设置新增用户和修改用户
-//        employee.setUpdateUser(10L);//后期修改
-        // employee.setCreateUser(10L);
-        employee.setUpdateUser(BaseContext.getCurrentId());
-        employee.setCreateUser(BaseContext.getCurrentId());
+/**
+ * 使用AOP，利用注解实行按
+ */
+//        //设置新增以及修改时间
+//
+//        employee.setCreateTime(LocalDateTime.now());
+//        employee.setUpdateTime(LocalDateTime.now());
+//
+//        //设置新增用户和修改用户
+////        employee.setUpdateUser(10L);//后期修改
+//        // employee.setCreateUser(10L);
+//        employee.setUpdateUser(BaseContext.getCurrentId());
+//        employee.setCreateUser(BaseContext.getCurrentId());
 
 
         employeeMapper.insert(employee);
 
+    }
+
+    @Override
+    public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
+
+        //开始分页查询
+        PageHelper.startPage(employeePageQueryDTO.getPage(),employeePageQueryDTO.getPageSize());
+        Page<Employee> page=employeeMapper.pageQuery(employeePageQueryDTO);//后续定义？？还不懂
+        long total = page.getTotal();
+
+        List<Employee> records = page.getResult();
+
+
+
+        return new PageResult(total,records);
+    }
+
+    @Override
+    public void startOrStop(Integer status, Long id) {
+        Employee employee = Employee.builder()
+                .id(id)
+                .status(status)
+                .build();
+        employeeMapper.update(employee);
+    }
+
+    @Override
+    public Employee getById(Integer id) {
+
+        Employee employee=employeeMapper.getById(id);
+        return employee;
+    }
+
+    @Override
+    @AutoFill(OperationType.UPDATE)
+    public void update(EmployeeDTO employeeDTO) {
+        Employee employee = new Employee();
+        //进行属性拷贝
+        BeanUtils.copyProperties(employeeDTO,employee);
+        //修改 修改时间及修改人
+//        employee.setUpdateUser(BaseContext.getCurrentId());
+//        employee.setUpdateTime(LocalDateTime.now());
+
+        employeeMapper.update(employee);
     }
 
 }
